@@ -1,0 +1,16 @@
+.center {
+    text-align: center;
+}
+
+body {
+    text-align: center;
+}
+
+.centered-form {
+    max-width: 512px;
+    margin: 2rem auto;
+}
+
+[x-cloak] {
+    display: none !important;
+}

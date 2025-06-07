@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp-web</title>
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            const accessKey = localStorage.getItem('accessKey');
+            Alpine.store('app', {
+                loggedin: !!accessKey,
+                password: accessKey || '',
+                loading: false,
+            });
+        });
+        function app() {
+            return Alpine.store('app');
+        }
+    </script>
+</head>
+
+<body x-data class="container">
+    <nav>
+        <ul>
+            <li><strong>yt-dlp-web</strong></li>
+        </ul>
+        <ul>
+            <li><a href="https://github.com/jere-mie/yt-dlp-web">GitHub</a></li>
+            <div x-show="$store.app.loggedin" x-cloak>
+                <li><a href="javascript:void(0);" onclick="logout()">Log Out</a></li>
+                <li><a href="javascript:void(0);" onclick="clearOut()">Clear Videos</a></li>
+            </div>
+        </ul>
+    </nav>
+    <br><br>
+    <h1>yt-dlp-web</h1>
+    <p>A super simple web interface for <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">yt-dlp</a></p>
+    <div x-show="!$store.app.loggedin" x-cloak>
+        <form class="centered-form" onsubmit="login(); return false;">
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div x-show="$store.app.loggedin" x-cloak>
+        <form class="centered-form"
+              onsubmit="download(); return false;">
+            <input type="text" name="url" id="url" placeholder="Enter video URL" required :disabled="$store.app.loading">
+            <button type="submit" :disabled="$store.app.loading" x-text="$store.app.loading ? 'Downloading...' : 'Download'"></button>
+        </form>
+    </div>
+
+    <script>
+        async function login() {
+            const password = document.getElementById('password').value;
+            const formData = new FormData();
+            formData.append('password', password);
+            const response = await fetch('/login', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                localStorage.setItem('accessKey', password);
+                app().loggedin = true;
+                app().password = password;
+                alert('Successfully logged in!');
+            } else {
+                alert('Invalid password. Please try again.');
+            }
+        }
+        function logout() {
+            localStorage.removeItem('accessKey');
+            app().loggedin = false;
+            app().password = '';
+        }
+        function clearOut() {
+            const password = app().password
+            const formData = new FormData();
+            formData.append('password', password);
+
+            fetch('/clear', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    alert('Videos cleared successfully!');
+                } else {
+                    alert('Failed to clear videos.');
+                }
+            });
+        }
+        async function download() {
+            if(!app().loggedin || app().loading) {
+                return;
+            }
+            app().loading = true;
+            const url = document.getElementById('url').value;
+            const formData = new FormData();
+            const password = app().password;
+            formData.append('url', url);
+            formData.append('password', password);
+            const response = await fetch('/download', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                app().loading = false;
+                const data = await response.json();
+                window.open("/out/" + data.file, "_blank");
+            } else {
+                app().loading = false;
+                alert('Failed to start download.');
+            }
+        }
+    </script>
+</body>
+
+</html>
