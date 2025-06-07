@@ -116,6 +116,11 @@ func main() {
 	})
 
 	http.HandleFunc("/download", func(w http.ResponseWriter, r *http.Request) {
+		type jsonResponse struct {
+			Error   bool   `json:"error,omitempty"`
+			Message string `json:"message"`
+			File    string `json:"file"`
+		}
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -132,16 +137,17 @@ func main() {
 		randomStr := randomString(10)
 		output, err := downloadVideo(url, randomStr)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error downloading video: %v", err), http.StatusInternalServerError)
+			resp := jsonResponse{
+				Error:   true,
+				Message: fmt.Sprintf("%v", err),
+				File:    "",
+			}
+			json.NewEncoder(w).Encode(resp)
 			return
 		}
 		response := fmt.Sprintf("Video downloaded successfully. Output: %s, File: %s.mp4", output, randomStr)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		type jsonResponse struct {
-			Message string `json:"message"`
-			File    string `json:"file"`
-		}
 		resp := jsonResponse{
 			Message: response,
 			File:    randomStr + ".mp4",

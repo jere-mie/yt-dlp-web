@@ -55,6 +55,12 @@
         </form>
     </div>
 
+    <div x-show="$store.app.errorMsg" x-cloak>
+        <pre style="text-align: left;">
+            <code x-text="$store.app.errorMsg"></code>
+        </pre>
+    </div>
+
     <script>
         async function login() {
             const password = document.getElementById('password').value;
@@ -111,10 +117,17 @@
             if (response.ok) {
                 app().loading = false;
                 const data = await response.json();
+                if(data.error){
+                    app().errorMsg = data.message || 'An error occurred';
+                    alert('Failed to download');
+                    return;
+                }
                 window.open("/out/" + data.file, "_blank");
             } else {
+                const data = await response.json();
+                app().errorMsg = data.message || 'An error occurred';
                 app().loading = false;
-                alert('Failed to start download.');
+                alert('Failed to download');
             }
         }
     </script>
